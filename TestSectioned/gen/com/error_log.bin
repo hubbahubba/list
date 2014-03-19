@@ -1,0 +1,373 @@
+mainact
+ extends FragmentActivity implements OnClickListener, TabHost.OnTabChangeListener, ViewPager.OnPageChangeListener, ServiceConnection
+ 
+ 
+ 
+
+	public static Fragment getFragment(ViewPager pager, FragmentPagerAdapter adapter, int index) {
+
+		//if (index == -1) index = pager.getCurrentItem();
+
+		try {
+			Method method = adapter.getClass().getSuperclass().getDeclaredMethod("makeFragmentName", int.class, long.class);
+			Field field = adapter.getClass().getSuperclass().getDeclaredField("mFragmentManager");
+			field.setAccessible(true);
+			FragmentManager fm = (FragmentManager) field.get(adapter);
+			method.setAccessible(true);
+			String tag = null;
+			tag = (String) method.invoke(null, pager.getId(), (long) index);
+			return fm.findFragmentByTag(tag);
+		} catch (NoSuchMethodException e) {
+			e.printStackTrace();
+		} catch (IllegalArgumentException e) {
+			e.printStackTrace();
+		} catch (IllegalAccessException e) {
+			e.printStackTrace();
+		} catch (InvocationTargetException e) {
+			e.printStackTrace();
+		} catch (NoSuchFieldException e) {
+			e.printStackTrace();
+		} 
+		return null;
+	}
+
+	public static Fragment getCurrentFragment(ViewPager pager, FragmentPagerAdapter adapter) {
+		return getFragment(pager, adapter, pager.getCurrentItem());
+	}
+
+	//**************************************************************************************
+	//**************************************************************************************
+	
+	
+	//**************************************************************************************
+	//**************************************************************************************
+
+	private TabHost mTabHost;
+	private ViewPager mViewPager;
+	private PagerAdapter mPagerAdapter;
+
+	/** (non-Javadoc)
+	 * @see android.support.v4.app.FragmentActivity#onSaveInstanceState(android.os.Bundle)
+	 */
+	protected void onSaveInstanceState(Bundle outState) {
+		outState.putString("tab", mTabHost.getCurrentTabTag()); //save the tab selected
+		super.onSaveInstanceState(outState);
+	}
+
+	/**
+	 * Initialize ViewPager
+	 */
+	private void initViewPager() {
+		List<Fragment> fragments = new Vector<Fragment>();
+		fragments.add(Fragment.instantiate(this, ChatsActivity.class.getName()));
+		fragments.add(Fragment.instantiate(this, UsersActivity.class.getName()));
+		fragments.add(Fragment.instantiate(this, UserProfile.class.getName()));
+		this.mPagerAdapter  = new PagerAdapter(super.getSupportFragmentManager(), fragments);
+		this.mViewPager = (ViewPager)super.findViewById(R.id.viewpager);
+		this.mViewPager.setAdapter(this.mPagerAdapter);
+		this.mViewPager.setOnPageChangeListener(this);
+	}
+
+
+
+	/**
+	 * 
+	 * 
+	 * Initialize the Tab Host
+	 * 
+	 * 
+	 */
+	private void initTabHost(Bundle args) {
+		mTabHost = (TabHost)findViewById(android.R.id.tabhost);
+		mTabHost.setup();
+		//		TabInfo tabInfo = null;
+
+		LinearLayout main = (LinearLayout)findViewById(R.layout.tabs_viewpager_layout); //activity_main);
+
+		View view1 = createNewTab(getString(R.string.title_tab_messages), main);
+		View view2 = createNewTab(getString(R.string.title_tab_contacts), main);
+		View view3 = createNewTab(getString(R.string.title_tab_profile), main);
+
+		addTab(view1, "Tab1"); //, ChatsActivity.class, args );
+		addTab(view2, "Tab2"); //, ChatsActivity.class, args );
+		addTab(view3, "Tab3"); //, ChatsActivity.class, args );
+
+		mTabHost.getTabWidget().setStripEnabled(true);
+		mTabHost.setOnTabChangedListener(this);
+		mTabHost.setOnTouchListener(new OnTouchListener() {
+
+			@Override
+			public boolean onTouch(View v, MotionEvent event) {
+				Log.e(LOG_CAT_TAG, "init TabHost OnTouch");
+				return false;
+			}
+		});
+	}
+
+	private View createNewTab(String title, ViewGroup root) {
+		View view = getLayoutInflater().inflate(R.layout.headlines, root, false);
+		TextView title_textview = (TextView)view.findViewById(R.id.title);
+		title_textview.setTypeface(null, Typeface.BOLD);
+		title_textview.setText(title);
+		view.setLayoutParams(new TableLayout.LayoutParams(LayoutParams.WRAP_CONTENT, LayoutParams.WRAP_CONTENT, 0.33f));
+		//		 view.setPadding(2, 15, 2, 15);
+		return view;
+	}
+
+	private void addTab(View tab, String title) { //, Class<?> clazz,  Bundle args) {
+		TabHost.TabSpec tabSpec = mTabHost.newTabSpec(title).setIndicator(tab);
+		tabSpec.setContent(new TabFactory(this));
+		mTabHost.addTab(tabSpec);
+	}
+
+
+
+
+
+
+
+	/**
+	 * 
+	 * 
+	 * TabHost Methods
+	 * 
+	 * 
+	 */
+
+	/** (non-Javadoc)
+	 * @see android.widget.TabHost.OnTabChangeListener#onTabChanged(java.lang.String)
+	 */
+	public void onTabChanged(String tag) {
+		//TabInfo newTab = this.mapTabInfo.get(tag);
+		if (mTabHost == null || mViewPager == null) return;
+		int pos = mTabHost.getCurrentTab();
+		mViewPager.setCurrentItem(pos);
+	}
+
+
+	/**
+	 * 
+	 * 
+	 * View Pager Methods
+	 * 
+	 * 
+	 */
+
+	/* (non-Javadoc)
+	 * @see android.support.v4.view.ViewPager.OnPageChangeListener#onPageScrolled(int, float, int)
+	 */
+	@Override
+	public void onPageScrolled(int position, float positionOffset,
+			int positionOffsetPixels) {
+		// TODO Auto-generated method stub
+
+	}
+
+	/* (non-Javadoc)
+	 * @see android.support.v4.view.ViewPager.OnPageChangeListener#onPageSelected(int)
+	 */
+	@Override
+	public void onPageSelected(int position) {
+		// TODO Auto-generated method stub
+		this.mTabHost.setCurrentTab(position);
+		if (position == 0) {
+			setMessagesPage();
+		}
+		else if (position == 1) {
+			setContactProfile();
+		}
+		else if (position == 2) {
+			setMyProfilePage();
+		}
+	}
+
+	/* (non-Javadoc)
+	 * @see android.support.v4.view.ViewPager.OnPageChangeListener#onPageScrollStateChanged(int)
+	 */
+	@Override
+	public void onPageScrollStateChanged(int state) {
+		// TODO Auto-generated method stub
+
+	}
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	//*********************************************************************
+	//***************************Server Updates****************************
+	//*********************************************************************
+	private Messenger mServiceMessenger = null;
+	boolean mIsBound;
+
+	private final Messenger mMessenger = new Messenger(new IncomingMessageHandler(this));
+
+	private void refreshChats() {
+		Fragment chats_frag = getFragment(mViewPager, mPagerAdapter, 0);
+		ChatsActivity chats  = (ChatsActivity)chats_frag;
+		chats.refreshChats();
+	}
+
+	private void refreshUsers() {	 
+		Fragment users_frag = getFragment(mViewPager, mPagerAdapter, 1);
+		UsersActivity users  = (UsersActivity)users_frag;
+		users.refreshUsers();
+	}
+
+	private ServiceConnection mConnection = this;
+
+	/**
+	 * Send data to the service
+	 * @param intvaluetosend The data to send
+	 */
+	private void sendMessageToService(int intvaluetosend) {
+		if (mIsBound) {
+			if (mServiceMessenger != null) {
+				try {
+					Message msg = Message.obtain(null, MyService.MSG_SET_INT_VALUE, intvaluetosend, 0);
+					msg.replyTo = mMessenger;
+					mServiceMessenger.send(msg);
+				} catch (RemoteException e) {
+					Log.e(LOG_CAT_TAG, "ChatsActivity-sendMessageToService-" + e.toString());
+				}
+			}
+		}
+	}
+
+	/**
+	 * Bind this Activity to MyService
+	 */
+	private void doBindService() {
+		Log.d(LOG_CAT_TAG,"ChatsActivity-doBindService");
+		try {
+			Intent bind_intent = new Intent(this, MyService.class);
+			bindService(bind_intent, mConnection, Context.BIND_AUTO_CREATE);
+			mIsBound = true;
+		}
+		catch(Exception e) {
+			Log.e(LOG_CAT_TAG, "ChatsActivity-doBindService-" + e.toString());
+			//TODO: cannot bind service
+		}
+	}
+
+	/**
+	 * Un-bind this Activity to MyService
+	 */     
+	private void doUnbindService() {
+		Log.d(LOG_CAT_TAG,"ChatsActivity-doUnbindService");
+		if (mIsBound) {
+			// If we have received the service, and hence registered with it, then now is the time to unregister.
+			if (mServiceMessenger != null) {
+				try {
+					Message msg = Message.obtain(null, MyService.MSG_UNREGISTER_CLIENT);
+					msg.replyTo = mMessenger;
+					mServiceMessenger.send(msg);
+				} catch (RemoteException e) {
+					Log.e(LOG_CAT_TAG, "ChatsActivity-doUnbindService-" + e.toString());
+					// There is nothing special we need to do if the service has crashed.
+				}
+			}
+			// Detach our existing connection.
+			unbindService(mConnection);
+			mIsBound = false;
+		}
+	}
+
+	@Override
+	public void onServiceConnected(ComponentName name, IBinder service) {
+		Log.d(LOG_CAT_TAG,"ChatsActivity-onServiceConnected");
+		mServiceMessenger = new Messenger(service);
+		try {
+			Message msg = Message.obtain(null, MyService.MSG_REGISTER_CLIENT);
+			msg.replyTo = mMessenger;
+			mServiceMessenger.send(msg);
+		} 
+		catch (RemoteException e) {
+			Log.e(LOG_CAT_TAG, "ChatsActivity-onServiceConnected-" + e.toString());
+			// In this case the service has crashed before we could even do anything with it
+		} 
+	}
+
+	@Override
+	public void onServiceDisconnected(ComponentName name) {
+		Log.d(LOG_CAT_TAG,"ChatsActivity-onServiceDisconnected");
+		// This is called when the connection with the service has been unexpectedly disconnected - process crashed.
+		mServiceMessenger = null;
+	}
+
+
+	private static final int GROUP_UPDATE = 323;
+	private static final int LINES_UPDATE = 324;
+	private static final int FILE_UPDATE = 325;
+	private static final int ACK_UPDATE = 326;
+	private static final int USER_UPDATE = 327;
+	private static final int LIVE_TYPE_UPDATE = 328;
+	private static final int STOP_LIVE_TYPE_UPDATE = 329;
+	private static final int SERVICE_ON = 657;
+	private boolean is_service_on = false;
+
+
+	/**
+	 * Handle incoming messages from MyService
+	 */
+	static class IncomingMessageHandler extends Handler { 
+		MainActivity activity;
+
+		public IncomingMessageHandler(MainActivity activity) {
+			this.activity = activity;
+		}
+		@Override
+		public void handleMessage(Message msg) {
+			// Log.d(LOGTAG,"IncomingHandler:handleMessage");
+			switch (msg.what) {
+			case MyService.MSG_SET_INT_VALUE:
+				Log.d("Got Int Message","From Service");
+
+				//msg.obtain();
+				//				Bundle data = msg.getData();
+				//				int what_update = data.getInt("value");
+				//				String what_str = data.getString("str");
+
+				int what_update = msg.arg1;
+				String what_str = (String)msg.obj;
+
+				switch (what_update) {
+				case GROUP_UPDATE:
+					activity.refreshChats();
+					break;
+				case LINES_UPDATE:
+					activity.refreshChats();
+					break;
+					//case FILE_UPDATE:
+					//	activity.getLinesRunnable();
+					//	break;
+					//case ACK_UPDATE:
+					//activity.refreshChats(); 
+					//TODO: this will only be important when chat line read is important in main ChatsActivity window
+					//right now it will only waste resources
+					//break;
+				case USER_UPDATE:
+					activity.refreshUsers();
+					break;
+					//case LIVE_TYPE_UPDATE:
+					//what_str is the phone that's typing to us
+					//break;
+					//case STOP_LIVE_TYPE_UPDATE:
+					//what_str is the phone that stopped typing to us
+					//break;
+				}
+
+				break;
+			case MyService.MSG_SET_STRING_VALUE:
+				Log.d("Got String Message","From Service");
+				//String str1 = msg.getData().getString("str1");
+				break;
+			default:
+				super.handleMessage(msg);
+			}
+		}
