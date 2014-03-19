@@ -371,3 +371,391 @@ mainact
 				super.handleMessage(msg);
 			}
 		}
+		
+		
+		
+		
+		
+		
+		
+		
+		
+		
+		
+		
+		
+		/**
+ * The <code>PagerAdapter</code> serves the fragments when paging.
+ * @author mwho
+ */
+public class PagerAdapter extends FragmentPagerAdapter {
+
+	private List<Fragment> fragments;
+	/**
+	 * @param fm
+	 * @param fragments
+	 */
+	public PagerAdapter(FragmentManager fm, List<Fragment> fragments) {
+		super(fm);
+		this.fragments = fragments;
+	}
+	/* (non-Javadoc)
+	 * @see android.support.v4.app.FragmentPagerAdapter#getItem(int)
+	 */
+	@Override
+	public Fragment getItem(int position) {
+		return this.fragments.get(position);
+	}
+
+	/* (non-Javadoc)
+	 * @see android.support.v4.view.PagerAdapter#getCount()
+	 */
+	@Override
+	public int getCount() {
+		return this.fragments.size();
+	}
+
+	@Override
+	public float getPageWidth(int position) {
+
+		//			return super.getPageWidth(position);
+
+		if (position == 0 || position == 1)
+		{
+			return 0.9f;
+		}
+		return 1f;
+	}
+}
+
+
+
+
+
+public class TabFactory implements TabContentFactory {
+	/**
+	 * A simple factory that returns dummy views to the Tabhost
+	 * @author mwho
+	 */
+	private final Context mContext;
+
+	/**
+	 * @param context
+	 */
+	public TabFactory(Context context) {
+		mContext = context;
+	}
+
+	/** (non-Javadoc)
+	 * @see android.widget.TabHost.TabContentFactory#createTabContent(java.lang.String)
+	 */
+	public View createTabContent(String tag) {
+		View v = new View(mContext);
+		v.setMinimumWidth(0);
+		v.setMinimumHeight(0);
+		return v;
+	}
+
+}
+
+
+
+
+
+
+public class FragmentAdapter extends FragmentPagerAdapter {
+	//public class FragAdapter extends FragmentPagerAdapter { //FragmentTabsPager { //
+	private SparseArray<Object> mPageReferenceMap = new SparseArray<Object>();//new HashMap<Integer, Object>();
+	Context context;
+
+	public FragmentAdapter(Context context, FragmentManager fm) {
+		super(fm);
+		this.context = context;
+	}
+
+	@Override
+	public int getCount() 
+	{
+		return 3;
+	}
+
+	@Override
+	public float getPageWidth(int position) {
+
+		//			return super.getPageWidth(position);
+
+		if (position == 0 || position == 1)
+		{
+			return 0.9f;
+		}
+		return 1f;
+	}
+
+	//		private String makeFragmentName(int viewId, int index) {
+	//			return "android:switcher:" + viewId + ":" + index;
+	//		}
+
+
+
+
+	@Override
+	public Fragment getItem(int position) 
+	{
+		Fragment frag = null;
+
+		switch(position) {
+		case 0:
+			frag = new ChatsActivity(); 
+			break;
+		case 1:
+			frag = new UsersActivity(); 
+			break;
+		case 2:
+			frag = new UserProfile(); 
+			break;
+		default:
+			frag = null;
+			break;
+		}
+
+		mPageReferenceMap.put(Integer.valueOf(position),frag);
+		return frag;
+	}
+
+
+	@SuppressWarnings("deprecation")
+	@Override
+	public void destroyItem(View container, int position, Object object) {
+
+		super.destroyItem(container, position, object);
+
+		mPageReferenceMap.remove(Integer.valueOf(position));
+	}
+
+	public Object getFragment(int key) {
+
+		return mPageReferenceMap.get(key);
+	}
+
+	@Override
+	public CharSequence getPageTitle(int position) {
+		switch (position) {
+		case 0:
+			return context.getString(R.string.title_tab_messages);
+		case 1:
+			return context.getString(R.string.title_tab_contacts);
+		case 2:
+			return context.getString(R.string.title_tab_profile);
+		default:
+			return "";
+		}
+	}
+
+
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+public class ChatsAdapter extends ArrayAdapter<Chat>{
+
+	private static final String LOG_CAT_TAG = "My";
+	private Context context;
+	private int layoutResourceId;   
+	private ArrayList<Chat> original = null;
+	private ArrayList<Chat> items = null;
+	private Locale locale;
+
+	public ChatsAdapter(Context context, int layoutResourceId, List<Chat> data, Locale locale) {
+		super(context, layoutResourceId, data);
+		this.layoutResourceId = layoutResourceId;
+		this.context = context;
+		this.original = new ArrayList<Chat>(data);
+		this.items = new ArrayList<Chat>(data);
+		this.locale = locale;
+	}
+
+	@Override
+	public View getView(int position, View convertView, ViewGroup parent) {
+		View row = convertView;
+		ChatHolder holder = null;
+		
+		final Chat chat = items.get(position);
+		if (chat != null) {
+			
+			if (row == null) {
+				LayoutInflater inflater = (LayoutInflater)getContext().getSystemService(Context.LAYOUT_INFLATER_SERVICE);
+				row = inflater.inflate(layoutResourceId, parent, false);
+				row.setLongClickable(true);
+				holder = new ChatHolder();
+				holder.time_or_date = (TextView)row.findViewById(R.id.time_or_date);
+				holder.image = (ImageView)row.findViewById(R.id.imgIcon);
+				holder.title = (TextView)row.findViewById(R.id.txtTitle);
+				holder.last_row = (TextView)row.findViewById(R.id.lastRow);
+			} else {
+				holder = (ChatHolder) row.getTag();
+			}
+			
+			//LayoutInflater inflater = ((Activity)context).getLayoutInflater();
+			//row = inflater.inflate(layoutResourceId, parent, false);
+
+			Timestamp timestamp = chat.getTimestamp();
+			if (timestamp != null) {
+				holder.time_or_date.setText(timestamp.toString());
+			} else { 
+				holder.time_or_date.setText("");
+			}
+			
+			byte[] picture = chat.getPicture();
+			Bitmaps.setImage(holder.image, picture);
+
+			String name = chat.getName();
+			if (name == null || name.equals("")) name = "No Name";
+			
+			holder.title.setText(name);
+
+			
+			String last_line = chat.getLastLine();
+
+			holder.last_row.setText(SpannableText.getSmiledText(context, last_line));
+
+			if (! chat.isLastLineRead()) {
+				holder.title.setTypeface(null, Typeface.BOLD);
+				holder.last_row.setTypeface(null, Typeface.BOLD);
+			}
+
+			holder.is_group = (chat.getGroupId() != null);
+			final boolean isGroup = (chat.getGroupId() != null && chat.getGroupId().trim().length() > 0);
+			holder.is_group = isGroup;
+			Log.d(LOG_CAT_TAG, "Chat Added is " + (holder.is_group ? "a group" : "not a group"));
+			
+			row.setTag(holder);
+
+			row.setFocusable(true);
+			row.setClickable(true);
+			row.setOnClickListener(new ChatClick(chat, holder));
+			row.setOnCreateContextMenuListener(null); //v is row here
+
+			//			row.setOnLongClickListener(new OnLongClickListener() {
+			//
+			//				@Override
+			//				public boolean onLongClick(View v) {
+			//					v.setOnCreateContextMenuListener(null); //v is row here
+			//					return true;
+			//				}
+			//			});
+
+		}
+		return row;
+
+	}
+
+	private class ChatClick implements OnClickListener {
+
+		Chat chat; 
+		ChatHolder holder;
+
+		public ChatClick(Chat chat, ChatHolder holder) {
+			this.chat = chat;
+			this.holder = holder;
+		}
+
+		@Override
+		public void onClick(View v) {
+			Intent chatIntent = new Intent(context, ChatDialogActivity.class);
+			Log.d("ChatsAdapter-TransferParams","ChatId:" + String.valueOf(chat.getChatID()));
+			Bundle bundle = new Bundle();
+			bundle.putInt("chat_id", chat.getChatID());
+			bundle.putString("group_id", chat.getGroupId());
+			bundle.putBoolean("is_chats", true);
+			boolean is_welcome = false;
+			String name = chat.getName();
+			if (name != null && name.equals("Welcome To My")) {
+				is_welcome = true;
+			}
+			bundle.putBoolean("is_welcome", is_welcome);
+			
+			chatIntent.putExtras(bundle); //Put your id to your next Intent
+			//					chat_intent.putExtra("chat_id", String.valueOf(chat.getChatID()));
+			//					chat_intent.putExtra("group_id", chat.getGroupId());
+			context.startActivity(chatIntent);
+
+			if (! chat.isLastLineRead()) {
+				holder.title.setTypeface(null, Typeface.NORMAL);
+				holder.last_row.setTypeface(null, Typeface.NORMAL);
+				chat.setIsLastLineRead(true);
+			}
+		}
+
+	}
+
+	static class ChatHolder {
+		private ImageView image;
+		private TextView title;
+		private TextView time_or_date;
+		private TextView last_row;
+		private boolean is_group;
+	}
+
+	public Filter getFilter() {
+		return new Filter() {
+			@SuppressWarnings("unchecked")
+			@Override
+			protected void publishResults(CharSequence constraint, FilterResults results) {
+				//data = (Chat[]) results.values;
+				//ChatAdapter.this.notifyDataSetChanged();
+				items = (ArrayList<Chat>)results.values;
+
+				clear();
+				int count = items.size();
+				for (int i=0; i < count; i++) {
+					Chat chat = items.get(i);
+					add(chat);
+				}
+			}
+
+			@Override
+			protected FilterResults performFiltering(CharSequence constraint) {
+
+				FilterResults results = new FilterResults();
+				String searchStr = constraint.toString().toLowerCase(locale);
+
+				if (searchStr == null || searchStr.length() == 0) {
+					ArrayList<Chat> list = new ArrayList<Chat>(original);
+					results.values = list;
+					results.count = list.size();
+				}
+				else {
+					final ArrayList<Chat> list = new ArrayList<Chat>(original);
+					final ArrayList<Chat> nlist = new ArrayList<Chat>();
+					int count = list.size();
+
+					for (int i=0; i < count; i++) {
+						final Chat chat = list.get(i);
+						//                        final String name = chat.getName().toLowerCase();
+						//                        final String code = chat.getCode().toLowerCase();
+
+						if (chat.contains(searchStr, locale)) {
+							nlist.add(chat);
+						}
+					}
+					results.values = nlist;
+					results.count = nlist.size();
+				}
+				return results;
+			}
+		};
+	}
+}
